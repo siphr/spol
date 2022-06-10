@@ -1,0 +1,10 @@
+Just clone the new repository with:
+    git clone ssh://aur@aur.archlinux.org/new_pkg_name.git
+
+Copy the validated .SRCINFO and PKGBUILD into the cloned repo
+
+Add, commit and push
+
+Check with auracle to see if the package is added.
+
+Ensure the cloned repo folder is not added, committed or push to your package source.
