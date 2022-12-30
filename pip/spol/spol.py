@@ -4,7 +4,9 @@ import argparse
 import requests
 import sys
 
-def check_complaint(complaint_number):
+_unit_url='https://www.sindhpolice.gov.pk/caders/{}'
+
+def get_complaint(complaint_number):
     #complaint_number=97939
     url=f'http://igpcms.sindhpolice.gov.pk/Complaint_Detail_For_Complainant.aspx?Complaint_Id={complaint_number}'
 
@@ -18,9 +20,6 @@ def check_complaint(complaint_number):
             'name':'-',
         }
 
-    print('\nSINDH POLICE COMPLAINT')
-    print('----------------------')
-
     try:
         complaint['id'] = parsed.find('span', {'id': 'Label_Track'}).text
         complaint['date'] = parsed.find('span', {'id': 'Label_Date'}).text
@@ -32,7 +31,13 @@ def check_complaint(complaint_number):
         complaint['status'] = parsed.find('div', {'class': 'middle_text'}).text
         complaint['comments'] = parsed.find('span', {'class': 'title'})
     except:
-        print('ERROR: ', 'Failed to acquire complaint.')
+        raise Excepton(f'Failed to acquire complaint {complaint_number}.')
+
+    return complaint
+
+def format_complaint(complaint):
+    print('\nSINDH POLICE COMPLAINT')
+    print('----------------------')
 
     print('ID: ', complaint['id'])
     print('DATE: ', complaint['date'])
@@ -52,9 +57,8 @@ def check_complaint(complaint_number):
             else:
                 break
 
-unit_url='https://www.sindhpolice.gov.pk/caders/{}'
 def list_units():
-    rs = requests.get(unit_url.format('index.html'))
+    rs = requests.get(_unit_url.format('index.html'))
     bs = BeautifulSoup(rs.text, 'html.parser')
     #print(bs)
     div = bs.find('div', {'class': 'container_organ'})
@@ -70,7 +74,7 @@ def list_unit(un):
             u = units[un-1]
             ln = u.a['href'].split('/')[-1]
             #print(unit_url.format(ln))
-            rs2 = requests.get(unit_url.format(ln))
+            rs2 = requests.get(_unit_url.format(ln))
             bs2 = BeautifulSoup(rs2.text, 'html.parser')
             #print(bs2)
             title = bs2.find('div', {'class': 'container_organ'}).h3.text
@@ -131,6 +135,7 @@ def list_helplines():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=' Pakistan Sind Police complaint status.')
+    parser.add_argument('-f', '--format', required=False, action='store_true', help='Print formatted output.')
     parser.add_argument('-c', '--complaint', required=False, help='Complaint number or ID of the complaint to check.')
     parser.add_argument('-l', '--list_units', required=False, action='store_true', help='List all Sindh Police units.')
     parser.add_argument('-m', '--medical_services', required=False, action='store_true', help='List all Sindh Police hospitals.')
@@ -139,7 +144,11 @@ if __name__ == '__main__':
     a = parser.parse_args()
 
     if a.complaint:
-        check_complaint(a.complaint)
+        c = get_complaint(a.complaint)
+        if a.format:
+            format_complaint(c)
+        else:
+            pprint(c)
     elif a.medical_services:
         list_hospitals()
     elif a.helplines:
