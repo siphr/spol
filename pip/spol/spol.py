@@ -57,12 +57,36 @@ def format_complaint(complaint):
             else:
                 break
 
-def list_units():
-    rs = requests.get(_unit_url.format('index.html'))
+def get_units():
+    rs = requests.get(_unit_url.format('index.html', verify=False))
+    #pprint(rs.text)
+
     bs = BeautifulSoup(rs.text, 'html.parser')
     #print(bs)
-    div = bs.find('div', {'class': 'container_organ'})
-    return div
+    div = bs.find('div', class_='container_organ')
+    #print (div)
+
+    if not div:
+        raise Exception('DOS prtection in effect. Try again in a while.')
+    units = []
+    units_html = div.find_all('p')
+    for uh in units_html:
+        if uh.a is not None:
+            #print(f'{i:02}.', u.a.text.strip())
+            units.append({
+                'name': uh.a.text.strip(),
+                'link': f'https://sindhpolice.gov.pk/{uh.a.get("href").split("../")[1]}'
+                })
+    return units
+
+def format_units(units):
+    i=0
+    print('\nSINDH POLICE UNITS')
+    print('------------------')
+    for u in units:
+        i=i+1
+        print(f'{i:02}. ', u['name'])
+        print(f'\033[2m{u["link"]}\033[0m')
 
 def list_unit(un):
         print(f'\n\033[6mSINDH POLICE UNIT #{un:02}\033[0m')
@@ -137,7 +161,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=' Pakistan Sind Police complaint status.')
     parser.add_argument('-f', '--format', required=False, action='store_true', help='Print formatted output.')
     parser.add_argument('-c', '--complaint', required=False, help='Complaint number or ID of the complaint to check.')
-    parser.add_argument('-l', '--list_units', required=False, action='store_true', help='List all Sindh Police units.')
+    parser.add_argument('-U', '--units', required=False, action='store_true', help='List all Sindh Police units.')
     parser.add_argument('-m', '--medical_services', required=False, action='store_true', help='List all Sindh Police hospitals.')
     parser.add_argument('-p', '--helplines', required=False, action='store_true', help='List all Sindh Police welfare helplines.')
     parser.add_argument('-u', '--unit', type=int, required=False, help='Unit number to view.')
@@ -149,21 +173,16 @@ if __name__ == '__main__':
             format_complaint(c)
         else:
             pprint(c)
+    elif a.units:
+        units = get_units()
+        if a.format:
+            format_units(units)
+        else:
+            pprint(units)
+        #print(units)
+    elif a.unit:
+        list_unit(a.unit)
     elif a.medical_services:
         list_hospitals()
     elif a.helplines:
         list_helplines()
-    elif a.list_units:
-        print('\nSINDH POLICE UNITS')
-        print('------------------')
-        units = list_units()
-        #print(units)
-        if units:
-            units = units.find_all('p')
-            i=0
-            for u in units:
-                i=i+1
-                if u.a is not None:
-                    print(f'{i:02}.', u.a.text.strip())
-    elif a.unit:
-        list_unit(a.unit)
